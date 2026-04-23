@@ -20,6 +20,16 @@ body { background:#0f0f0f; color:white; font-family:Arial; }
   display:flex;
   flex-direction:column;
 }
+.badge {
+  display:inline-block;
+  padding:2px 6px;
+  margin-right:4px;
+  border-radius:6px;
+  font-size:11px;
+  font-weight:bold;
+  background:#333;
+  color:white;
+}
 /* 🔥 zonas scrolleables */
 #setsList,
 #results {
@@ -90,13 +100,13 @@ body { background:#0f0f0f; color:white; font-family:Arial; }
     <option>Pad</option>
   </select>
 
-  <button onclick="addSet()">Agregar</button>
+  <button onclick="addSet()">Add set</button>
 
   <div id="setsList"></div>
 
   <hr>
 
-  <button onclick="searchSelected()">Buscar seleccionados</button>
+  <button onclick="searchSelected()">Search selected</button>
   <button onclick="toggleAutoMode()" id="autoBtn">Auto Mode OFF</button>
 </div>
 
@@ -108,7 +118,7 @@ body { background:#0f0f0f; color:white; font-family:Arial; }
 
 <!-- RIGHT -->
 <div id="resultsPanel" class="panel">
-  <h3>Resultados</h3>
+  <h3>Results</h3>
   <div id="results"></div>
 </div>
 
@@ -133,12 +143,12 @@ const OPTION_LABELS = {
   izdr: "ZEN"
 };
 const OPTION_COLORS = {
-  dd: "#00ff88",
-  dsr: "#66ccff",
-  iml: "#ff66ff",
-  imsd: "#ffaa00",
-  rd: "#ff4444",
-  izdr: "#ffff00"
+  dd: "#00c853",
+  dsr: "#00b0ff",
+  iml: "#d500f9",
+  imsd: "#ff9100",
+  rd: "#ff1744",
+  izdr: "#ffd600"
 };
 
 let autoMode = false;
@@ -370,7 +380,9 @@ function renderItem(item, opts) {
 
   OPTIONS.forEach(o => {
     if (opts[o]) {
-  txt += `<span style="color:${OPTION_COLORS[o]}">[${OPTION_LABELS[o]}]</span>`;
+  txt += `<span class="badge" style="background:${OPTION_COLORS[o]}">
+  ${OPTION_LABELS[o]}
+</span>`;
 }
   });
 
