@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>MU Market Sets</title>
+
+<style>
+body { background:#0f0f0f; color:white; font-family:Arial; }
+
+.container { display:flex; gap:20px; }
+
+.panel {
+  width:350px;
+  background:#1a1a1a;
+  padding:10px;
+  border-radius:8px;
+}
+
+button { cursor:pointer; margin-top:5px; }
+
+.set {
+  border:1px solid #333;
+  margin-top:10px;
+  border-radius:6px;
+}
+
+.header {
+  cursor:pointer;
+  background:#222;
+  padding:6px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.header:hover { background:#2a2a2a; }
+
+.arrow { font-size:12px; }
+
+.hidden { display:none; }
+
+.part {
+  margin-left:10px;
+  border-left:2px solid #444;
+  padding-left:5px;
+  margin-top:5px;
+}
+
+.options label {
+  display:block;
+  font-size:12px;
+}
+
+.item { font-size:12px; color:#bbb; }
+</style>
+</head>
+
+<body>
+
+<h2>MU Market Sets</h2>
+
+<div class="container">
+
+<div class="panel">
+
+<h3>Crear Set</h3>
+
+<select id="setSelect">
+<option>Pad</option><option>Leather</option><option>Vine</option>
+<option>Bronze</option><option>Silk</option><option>Bone</option>
+<option>Scale</option><option>Wind</option><option>Violent Wind</option>
+<option>Sphinx</option><option>Brass</option><option>Spirit</option>
+<option>Plate</option><option>Legendary</option><option>Red Winged</option>
+<option>Guardian</option><option>Dragon</option><option>Light Plate</option>
+<option>Sacred Fire</option><option>Ancient</option><option>Adamantine</option>
+<option>Storm Crow</option><option>Storm Zahard</option>
+<option>Black Dragon</option><option>Demonic</option><option>Grand Soul</option>
+<option>Holy Spirit</option><option>Dark Steel</option><option>Dark Phoenix</option>
+<option>Thunder Hawk</option>
+</select>
+
+<button onclick="addSet()">Agregar Set</button>
+
+<hr>
+
+<button onclick="searchSelected()">Buscar sets seleccionados</button>
+
+<div id="sets"></div>
+
+</div>
+
+<div class="panel">
+<h3>Resultados</h3>
+<div id="results"></div>
+</div>
+
+</div>
+
+<script>
+
+const PARTS = ["helm","armor","pants","gloves","boots"];
+const OPTIONS = ["dd","dsr","iml","imsd","rd","izdr"];
+
+// --------------------
+function loadSets() {
+  try {
+    const raw = localStorage.getItem("sets");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
+let sets = loadSets();
+
+function save() {
+  localStorage.setItem("sets", JSON.stringify(sets));
+}
+
+// --------------------
+function addSet() {
+  const name = document.getElementById("setSelect").value;
+  if (sets.find(s => s.name === name)) return;
+
+  const parts = {};
+  PARTS.forEach(p => parts[p] = {});
+
+  sets.push({ name, parts, enabled: true });
+
+  save();
+  renderSets();
+}
+
+// --------------------
+function toggle(id, el) {
+  const target = document.getElementById(id);
+  target.classList.toggle("hidden");
+
+  if (el) {
+    const arrow = el.querySelector(".arrow");
+    if (arrow) {
+      arrow.textContent = target.classList.contains("hidden") ? "▶" : "▼";
+    }
+  }
+}
+
+// --------------------
+function toggleOption(setName, part, opt, value) {
+  const set = sets.find(s => s.name === setName);
+  set.parts[part][opt] = value;
+  save();
+}
+
+function toggleLuck(setName, part, value) {
+  const set = sets.find(s => s.name === setName);
+  set.parts[part].luck = value;
+  save();
+}
+
+function toggleSetEnabled(name, val) {
+  const set = sets.find(s => s.name === name);
+  set.enabled = val;
+  save();
+}
+
+// --------------------
+function renderSets() {
+  const container = document.getElementById("sets");
+  container.innerHTML = "";
+
+  sets.forEach((set, i) => {
+
+    const div = document.createElement("div");
+    div.className = "set";
+
+    let html = `
+      <div class="header" onclick="toggle('set-${i}', this)">
+        <span>
+          <input type="checkbox"
+            ${set.enabled ? "checked" : ""}
+            onclick="event.stopPropagation()"
+            onchange="toggleSetEnabled('${set.name}', this.checked)">
+          ${set.name}
+        </span>
+        <span class="arrow">▼</span>
+      </div>
+
+      <div id="set-${i}">
+    `;
+
+    PARTS.forEach(part => {
+
+      if ((set.name === "Storm Crow" || set.name === "Thunder Hawk") && part === "helm") return;
+      if ((set.name === "Sacred Fire" || set.name === "Storm Zahard") && part === "gloves") return;
+
+      html += `
+        <div class="part">
+
+          <div class="header" onclick="toggle('${set.name}-${part}', this)">
+            ${part}
+            <span class="arrow">▶</span>
+          </div>
+
+          <div id="${set.name}-${part}" class="hidden options">
+      `;
+
+      OPTIONS.forEach(opt => {
+        html += `
+          <label>
+            <input type="checkbox"
+              ${set.parts[part][opt] ? "checked" : ""}
+              onchange="toggleOption('${set.name}','${part}','${opt}',this.checked)">
+            ${opt}
+          </label>
+        `;
+      });
+
+      html += `
+        <label>
+          <input type="checkbox"
+            ${set.parts[part].luck ? "checked" : ""}
+            onchange="toggleLuck('${set.name}','${part}',this.checked)">
+          luck
+        </label>
+      `;
+
+      html += `</div></div>`;
+    });
+
+    html += `</div>`;
+    div.innerHTML = html;
+    container.appendChild(div);
+  });
+}
+
+// --------------------
+// 💰 PRECIO
+// --------------------
+function getPriceString(item) {
+  const prices = item.Prices || [];
+
+  if (!prices.length) return `${item.type} - no price`;
+
+  if (prices.length === 1) {
+    const p = prices[0];
+
+    if (p.Currency?.code === "dc") {
+      return `${item.type} - ${p.value} dc`;
+    }
+
+    if (p.Currency?.code === "zen") {
+      return `${item.type} - ${Math.floor(p.value / 1_000_000)}KK`;
+    }
+  }
+
+  const jewels = { bless:0, soul:0, chaos:0, life:0, creat:0 };
+  let hasJewels = false;
+
+  for (const p of prices) {
+    const code = p.Currency?.code;
+    if (jewels.hasOwnProperty(code)) {
+      jewels[code] = p.value;
+      hasJewels = true;
+    }
+  }
+
+  if (hasJewels) {
+    const txt = Object.entries(jewels)
+      .filter(([_, v]) => v > 0)
+      .map(([k, v]) => `${v}${k}`)
+      .join(" ");
+
+    return `${item.type} - ${txt}`;
+  }
+
+  return `${item.type} - unknown`;
+}
+
+// --------------------
+// 🎯 RENDER SIMPLE (SIN INVENTAR OPCIONES)
+// --------------------
+function renderItem(item, filters = {}) {
+  const base = getPriceString(item);
+
+  let optsHTML = "";
+
+  const activeOptions = filters.options || {};
+
+  for (const opt in activeOptions) {
+    if (activeOptions[opt]) {
+      optsHTML += `[${opt}]`;
+    }
+  }
+
+  return `${base} ${optsHTML}`;
+}
+
+// --------------------
+// 🔍 SEARCH
+// --------------------
+// ==========================
+// ⏳ DELAYS CONFIGURABLES
+// ==========================
+const REQUEST_DELAY = 800;   // entre partes
+const SET_DELAY = 2500;      // entre sets
+
+function sleep(ms) {
+  return new Promise(res => setTimeout(res, ms));
+}
+
+function randomDelay(base) {
+  return base + Math.floor(Math.random() * 400);
+}
+
+// --------------------
+// 🔥 SEARCH FINAL
+// --------------------
+async function searchSelected() {
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "Buscando...";
+
+  for (let s = 0; s < sets.length; s++) {
+    const set = sets[s];
+    if (!set.enabled) continue;
+
+    const setDiv = document.createElement("div");
+    setDiv.className = "set";
+
+    let setHTML = `
+      <div class="header" onclick="toggle('res-${set.name}', this)">
+        ${set.name}
+        <span class="arrow">▼</span>
+      </div>
+      <div id="res-${set.name}">
+    `;
+
+    for (let p = 0; p < PARTS.length; p++) {
+      const part = PARTS[p];
+
+      // ❌ EXCLUSIONES
+      if ((set.name === "Storm Crow" || set.name === "Thunder Hawk") && part === "helm") continue;
+      if ((set.name === "Sacred Fire" || set.name === "Storm Zahard") && part === "gloves") continue;
+
+      const opts = set.parts[part] || {};
+
+      const filters = {};
+
+      // 🔹 OPCIONES
+      OPTIONS.forEach(opt => {
+        if (opts[opt]) {
+          filters[opt] = [0,1,2,3,4];
+        }
+      });
+
+      // 🔹 LUCK
+      if (opts.luck) {
+        filters.hasLuck = true;
+      }
+
+      const term = `${set.name} ${part}`;
+
+      let data = [];
+
+      try {
+        data = await window.api.searchLots({
+          term,
+          filters
+        });
+      } catch (e) {
+        console.error("Error buscando:", term, e);
+      }
+
+      setHTML += `
+        <div class="part">
+          <div class="header" onclick="toggle('res-${set.name}-${part}', this)">
+            ${part} (${data.length})
+            <span class="arrow">▶</span>
+          </div>
+
+          <div id="res-${set.name}-${part}" class="hidden">
+            ${data.map(x => `
+  <div class="item">
+    ${renderItem(x, {
+      options: opts,
+    })}
+  </div>
+`).join("")}
+          </div>
+        </div>
+      `;
+
+      // ⏳ DELAY ENTRE PARTES
+      await sleep(randomDelay(REQUEST_DELAY));
+    }
+
+    setHTML += `</div>`;
+    setDiv.innerHTML = setHTML;
+    resultsDiv.appendChild(setDiv);
+
+    // ⏳ DELAY ENTRE SETS
+    if (s < sets.length - 1) {
+      await sleep(randomDelay(SET_DELAY));
+    }
+  }
+}
+
+// INIT
+renderSets();
+
+</script>
+
+</body>
+</html>

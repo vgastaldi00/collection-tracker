@@ -1,0 +1,15 @@
+{
+  "auth": {
+    "token": "",
+    "cookie": ""
+  },
+  "items": [
+    {
+      "name": "Bone",
+      "part": "helm",
+      "options": []
+    }
+  ],
+  "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJnYW1lcklkIjoiNWRiYzI5ZTUtY2FiMC00NjZkLThmYmEtNWI1NDNjMDU2MWJhIiwianRpIjoiMmU1ZDg2MDEtZmI1NC00NGVkLWI5NGMtMDhjZDhhMmM4ZDFkIiwiaWF0IjoxNzc0ODExNTAzLCJleHAiOjQzNjY4MTE1MDN9.PeLB4-98BWlP5dzIbCqMF9y2QJYKUDFfUDR67ueU8KE",
+  "cookies": "_gcl_au=1.1.1535985231.1769469836; _ga=GA1.1.745754007.1769469836; _ga_Q54ZWHCWYS=GS2.1.s1769820000$o3$g1$t1769820154$j4$l0$h1288036266$dintNuhsA7g2vkVWfr9s7UDbm9tbbkHSR9w; authorization=Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJnYW1lcklkIjoiNWRiYzI5ZTUtY2FiMC00NjZkLThmYmEtNWI1NDNjMDU2MWJhIiwianRpIjoiMmU1ZDg2MDEtZmI1NC00NGVkLWI5NGMtMDhjZDhhMmM4ZDFkIiwiaWF0IjoxNzc0ODExNTAzLCJleHAiOjQzNjY4MTE1MDN9.PeLB4-98BWlP5dzIbCqMF9y2QJYKUDFfUDR67ueU8KE; userip=186.136.100.214; cf_clearance=vsc5eFuUR5.VgTdYl5bSdxm1vcUimmFgx_jVqg0zQwo-1776646019-1.2.1.1-JZO8GBWrAztObPwomiw7jthjb5AoIl7MdT2WvpbveCae2G25kAJsLmvKbUEBHBW3NdeQLFKnBU_2FOSUGDe2vXQdSEUX2gqHLweKcUs.tIblDlxqgP1ZLo2kzoPpohvDzGceFx4fTdZ8UIWSfTqpk7iuOb8D4ogTlYQIMVOH9RMQGGxEVR2ekG7r.Em6wolk_edZ5kd7vLeyeAVjKF4wBqIu3pVZEyR8IBoNpZDhGAJsyKA2b2FZ6xwuArwreqOOGaq.bm7IWzUUGPKWpBkxXmYXJtWa5MzcVIzggf1qb0f3MM_CRgp.vVrk6U9oQuu9o50gQshB7Nh8.CcSQjsISA"
+}
