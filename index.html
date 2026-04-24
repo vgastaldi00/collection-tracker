@@ -12,6 +12,13 @@ body { background:#0f0f0f; color:white; font-family:Arial; }
   gap:10px;
   height:80vh; /* 🔥 controla altura total */
 }
+.jewel { font-weight: bold; }
+
+.jewel-bless { color: #6904dd; }   /* azul */
+.jewel-soul { color: #f02caf; }    /* violeta */
+.jewel-chaos { color: #fbff01; }   /* amarillo */
+.jewel-life { color: #fa9600; }    /* verde */
+.jewel-creat { color: #f7004a; }   /* naranja */
 
 .panel {
   background:#1a1a1a;
@@ -94,11 +101,19 @@ body { background:#0f0f0f; color:white; font-family:Arial; }
 <div id="setsPanel" class="panel">
   <h3>Sets</h3>
 
-  <select id="setSelect">
-    <option>Bronze</option>
-    <option>Leather</option>
-    <option>Pad</option>
-  </select>
+<select id="setSelect">
+<option>Pad</option><option>Leather</option><option>Vine</option>
+<option>Bronze</option><option>Silk</option><option>Bone</option>
+<option>Scale</option><option>Wind</option><option>Violent Wind</option>
+<option>Sphinx</option><option>Brass</option><option>Spirit</option>
+<option>Plate</option><option>Legendary</option><option>Red Winged</option>
+<option>Guardian</option><option>Dragon</option><option>Light Plate</option>
+<option>Sacred Fire</option><option>Ancient</option><option>Adamantine</option>
+<option>Storm Crow</option><option>Storm Zahard</option>
+<option>Black Dragon</option><option>Demonic</option><option>Grand Soul</option>
+<option>Holy Spirit</option><option>Dark Steel</option><option>Dark Phoenix</option>
+<option>Thunder Hawk</option>
+</select>
 
   <button onclick="addSet()">Add set</button>
 
@@ -197,20 +212,20 @@ function renderSets() {
   div.innerHTML = "";
 
   sets.forEach(set => {
-    div.innerHTML += `
-      <div class="setItem">
-        <span onclick="selectSet('${set.name}')">${set.name}</span>
+div.innerHTML += `
+  <div class="setItem">
+    <span onclick="selectSet('${set.name}')">${set.name}</span>
 
-        <span>
-          <input type="checkbox"
-            ${set.enabled ? "checked" : ""}
-            onchange="toggleSet('${set.name}', this.checked)">
+    <span>
+      <input type="checkbox"
+        ${set.enabled ? "checked" : ""}
+        onchange="toggleSet('${set.name}', this.checked)">
 
-          <button onclick="searchOne('${set.name}')">▶</button>
-          <button onclick="deleteSet('${set.name}')">X</button>
-        </span>
-      </div>
-    `;
+      <button onclick="searchOne('${set.name}', false)">▶</button>
+      <button onclick="deleteSet('${set.name}')" style="color:red;">X</button>
+    </span>
+  </div>
+`;
   });
 }
 
@@ -244,7 +259,7 @@ function renderEditor() {
         <label>
           <input type="checkbox"
             ${selectedSet.parts[part][opt] ? "checked":""}
-            onchange="toggleOpt('${part}','${OPTION_LABELS[opt]}',this.checked)">
+            onchange="toggleOpt('${part}','${opt}',this.checked)">
           ${OPTION_LABELS[opt]}
         </label>
       `;
@@ -336,9 +351,11 @@ async function searchOne(name, isAuto = false) {
       term: `${name} ${part}`,
       filters
     });
+    console.log("DATA RAW:", data);
+  const filtered = data;
 
     // 🔔 NOTIFY
-    if (isAuto && opts.notify && data.length > 0) {
+    if (isAuto && opts.notify && filtered.length > 0) {
       const key = `${name} ${part}`;
 
       if (!notifiedThisRun.has(key)) {
@@ -352,24 +369,30 @@ async function searchOne(name, isAuto = false) {
       }
     }
 
-    html += `
-      <div class="header" onclick="toggle('r-${name}-${part}')">
-        ${part} (${data.length})
-      </div>
+const uniqueId = `r-${name}-${part}-${Date.now()}`;
 
-      <div id="r-${name}-${part}" class="hidden">
-        ${data.map(x => `
-          <div class="item">
-            ${renderItem(x, opts)}
-          </div>
-        `).join("")}
+html += `
+  <div class="header" onclick="toggle('${uniqueId}')">
+    ${part} (${filtered.length})
+  </div>
+
+  <div id="${uniqueId}" class="hidden">
+    ${filtered.map(x => `
+      <div class="item">
+        ${renderItem(x, opts)}
       </div>
-    `;
+    `).join("")}
+  </div>
+`;
 
     await delay(1200);
   }
 
-  resultsDiv.innerHTML += html;
+  if (!isAuto) {
+  resultsDiv.innerHTML = html;   // 🔥 reemplaza
+} else {
+  resultsDiv.innerHTML += html;  // auto puede acumular dentro de la misma iteración
+}
 }
 
 // ----------------
@@ -393,19 +416,58 @@ function renderItem(item, opts) {
 
 // ----------------
 function getPrice(item) {
-  const p = item.Prices || [];
+  const prices = item.Prices || [];
 
-  if (!p.length) return `${item.type} - no price`;
+  if (!prices.length) return `${item.type} - no price`;
 
-  if (p.length === 1) {
-    if (p[0].Currency.code === "dc")
-      return `${item.type} - ${p[0].value} dc`;
+  // =========================
+  // DC / ZEN
+  // =========================
+  if (prices.length === 1) {
+    const p = prices[0];
 
-    if (p[0].Currency.code === "zen")
-      return `${item.type} - ${Math.floor(p[0].value/1e6)}KK`;
+    if (p.Currency?.code === "dc") {
+      return `${item.type} - ${p.value} dc`;
+    }
+
+    if (p.Currency?.code === "zen") {
+      return `${item.type} - ${Math.floor(p.value / 1_000_000)}KK`;
+    }
   }
 
-  return `${item.type} - multi`;
+  // =========================
+  // 💎 JOYAS (FIX REAL)
+  // =========================
+  const jewels = {
+    bless: 0,
+    soul: 0,
+    chaos: 0,
+    life: 0,
+    creat: 0
+  };
+
+  let hasJewels = false;
+
+  for (const p of prices) {
+    const code = p.Currency?.code;
+
+    if (jewels.hasOwnProperty(code)) {
+      jewels[code] = p.value;
+      hasJewels = true;
+    }
+  }
+
+  if (hasJewels) {
+    const txt = Object.entries(jewels)
+      .filter(([_, v]) => v > 0)
+      .map(([k, v]) => `<span class="jewel jewel-${k}">${v}${k}</span>`)
+      .join(" ");
+
+    return `${item.type} - ${txt}`;
+  }
+
+  // fallback
+  return `${item.type} - unknown`;
 }
 
 // ----------------

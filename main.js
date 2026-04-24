@@ -101,6 +101,9 @@ ipcMain.on("flash-window", () => {
     if (mainWindow) mainWindow.flashFrame(false);
   }, 3000);
 });
+ipcMain.on("flash", () => {
+  if (mainWindow) mainWindow.flashFrame(true);
+});
 
 // ==============================
 // SEARCH (INTOCABLE PERO LIMPIO)

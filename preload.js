@@ -1,11 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
-
-  // 🔎 SEARCH
-  searchLots: (payload) => ipcRenderer.invoke("search-lots", payload),
-
-  // 🔔 FLASH (barra de Windows)
-  flash: () => ipcRenderer.send("flash-window")
-
+  searchLots: (payload) => {
+    console.log("IPC SEND:", payload);
+    return ipcRenderer.invoke("search-lots", payload);
+  },
+  flash: () => ipcRenderer.send("flash")
 });
