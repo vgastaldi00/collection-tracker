@@ -1,6 +1,6 @@
 {
   "name": "mu-app",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "MU Market Tool",
   "main": "main.js",
   "scripts": {

@@ -133,6 +133,9 @@ body { background:#0f0f0f; color:white; font-family:Arial; }
 
 <!-- RIGHT -->
 <div id="resultsPanel" class="panel">
+  <button onclick="stopSearch()" style="margin-bottom:5px; background:#c0392b; color:white;">
+  ⛔ Stop
+</button>
   <h3>Results</h3>
   <div id="results"></div>
 </div>
@@ -147,8 +150,11 @@ body { background:#0f0f0f; color:white; font-family:Arial; }
 
 <script>
 
+let currentSearchId = 0;
+
 const PARTS = ["helm","armor","pants","gloves","boots"];
 const OPTIONS = ["dd","dsr","iml","imsd","rd","izdr"];
+
 const OPTION_LABELS = {
   dd: "DD",
   dsr: "DSR",
@@ -157,6 +163,7 @@ const OPTION_LABELS = {
   rd: "RF",
   izdr: "ZEN"
 };
+
 const OPTION_COLORS = {
   dd: "#00c853",
   dsr: "#00b0ff",
@@ -172,17 +179,18 @@ let autoInterval = null;
 let sets = JSON.parse(localStorage.getItem("sets") || "[]");
 let selectedSet = null;
 
-// 🔔 estado por iteración
 let notifiedThisRun = new Set();
-
-// pedir permiso notificaciones
-if (Notification.permission !== "granted") {
-  Notification.requestPermission();
-}
 
 // ----------------
 function save() {
   localStorage.setItem("sets", JSON.stringify(sets));
+}
+
+// ----------------
+function stopSearch() {
+  currentSearchId++;
+  document.getElementById("results").innerHTML = "";
+  console.log("⛔ Search cancelado");
 }
 
 // ----------------
@@ -212,20 +220,20 @@ function renderSets() {
   div.innerHTML = "";
 
   sets.forEach(set => {
-div.innerHTML += `
-  <div class="setItem">
-    <span onclick="selectSet('${set.name}')">${set.name}</span>
+    div.innerHTML += `
+      <div class="setItem">
+        <span onclick="selectSet('${set.name}')">${set.name}</span>
 
-    <span>
-      <input type="checkbox"
-        ${set.enabled ? "checked" : ""}
-        onchange="toggleSet('${set.name}', this.checked)">
+        <span>
+          <input type="checkbox"
+            ${set.enabled ? "checked" : ""}
+            onchange="toggleSet('${set.name}', this.checked)">
 
-      <button onclick="searchOne('${set.name}', false)">▶</button>
-      <button onclick="deleteSet('${set.name}')" style="color:red;">X</button>
-    </span>
-  </div>
-`;
+          <button onclick="searchOne('${set.name}')">▶</button>
+          <button onclick="deleteSet('${set.name}')" style="color:red;">X</button>
+        </span>
+      </div>
+    `;
   });
 }
 
@@ -302,29 +310,38 @@ function toggleNotify(part,val) {
 }
 
 // ----------------
-// 🔔 NOTIFY
-// ----------------
 function triggerNotification(text) {
 
-  // 🔊 sonido
   const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=");
   audio.play().catch(()=>{});
 
-  // 🪟 sistema
   if (Notification.permission === "granted") {
     new Notification("MU Market", { body: text });
   }
 
-  // 🟠 barra windows
   if (window.api?.flash) {
     window.api.flash();
   }
 }
 
 // ----------------
-// SEARCH CORE
+// 🔥 SEARCH ONE (independiente)
 // ----------------
 async function searchOne(name, isAuto = false) {
+
+  const searchId = ++currentSearchId;
+
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "Buscando...";
+
+  await searchOneInternal(name, isAuto, false, searchId);
+}
+
+// ----------------
+// 🔥 CORE REAL
+// ----------------
+async function searchOneInternal(name, isAuto, append, searchId) {
+
   const set = sets.find(s => s.name === name);
   if (!set) return;
 
@@ -333,6 +350,8 @@ async function searchOne(name, isAuto = false) {
   let html = `<h4>${name}</h4>`;
 
   for (const part of PARTS) {
+
+    if (searchId !== currentSearchId) return;
 
     const opts = set.parts[part];
 
@@ -351,10 +370,11 @@ async function searchOne(name, isAuto = false) {
       term: `${name} ${part}`,
       filters
     });
-    console.log("DATA RAW:", data);
-  const filtered = data;
 
-    // 🔔 NOTIFY
+    if (searchId !== currentSearchId) return;
+
+    const filtered = data;
+
     if (isAuto && opts.notify && filtered.length > 0) {
       const key = `${name} ${part}`;
 
@@ -369,30 +389,80 @@ async function searchOne(name, isAuto = false) {
       }
     }
 
-const uniqueId = `r-${name}-${part}-${Date.now()}`;
+    const uniqueId = `r-${name}-${part}-${Date.now()}`;
 
-html += `
-  <div class="header" onclick="toggle('${uniqueId}')">
-    ${part} (${filtered.length})
-  </div>
-
-  <div id="${uniqueId}" class="hidden">
-    ${filtered.map(x => `
-      <div class="item">
-        ${renderItem(x, opts)}
+    html += `
+      <div class="header" onclick="toggle('${uniqueId}')">
+        ${part} (${filtered.length})
       </div>
-    `).join("")}
-  </div>
-`;
 
-    await delay(1200);
+      <div id="${uniqueId}" class="hidden">
+        ${filtered.map(x => `
+          <div class="item">
+            ${renderItem(x, opts)}
+          </div>
+        `).join("")}
+      </div>
+    `;
+
+    await delay(400);
   }
 
-  if (!isAuto) {
-  resultsDiv.innerHTML = html;   // 🔥 reemplaza
-} else {
-  resultsDiv.innerHTML += html;  // auto puede acumular dentro de la misma iteración
+  if (searchId !== currentSearchId) return;
+
+  if (append) {
+    resultsDiv.innerHTML += html;
+  } else {
+    resultsDiv.innerHTML = html;
+  }
 }
+
+// ----------------
+// 🔥 SEARCH MULTIPLE
+// ----------------
+async function searchSelected(isAuto = false) {
+
+  const searchId = ++currentSearchId;
+
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "Buscando...";
+
+  for (const s of sets) {
+
+    if (!s.enabled) continue;
+
+    if (searchId !== currentSearchId) return;
+
+    await searchOneInternal(s.name, isAuto, true, searchId);
+
+    await delay(700);
+  }
+}
+
+// ----------------
+async function runAutoSearch() {
+  notifiedThisRun.clear();
+  document.getElementById("notifyList").innerHTML = "";
+
+  await searchSelected(true);
+}
+
+// ----------------
+function toggleAutoMode() {
+  autoMode = !autoMode;
+
+  const btn = document.getElementById("autoBtn");
+
+  if (autoMode) {
+    btn.textContent = "Auto Mode ON";
+    runAutoSearch();
+
+    autoInterval = setInterval(runAutoSearch, 5 * 60 * 1000);
+
+  } else {
+    btn.textContent = "Auto Mode OFF";
+    clearInterval(autoInterval);
+  }
 }
 
 // ----------------
@@ -403,10 +473,10 @@ function renderItem(item, opts) {
 
   OPTIONS.forEach(o => {
     if (opts[o]) {
-  txt += `<span class="badge" style="background:${OPTION_COLORS[o]}">
-  ${OPTION_LABELS[o]}
-</span>`;
-}
+      txt += `<span class="badge" style="background:${OPTION_COLORS[o]}">
+        ${OPTION_LABELS[o]}
+      </span>`;
+    }
   });
 
   if (opts.luck) txt += `[luck]`;
@@ -420,9 +490,6 @@ function getPrice(item) {
 
   if (!prices.length) return `${item.type} - no price`;
 
-  // =========================
-  // DC / ZEN
-  // =========================
   if (prices.length === 1) {
     const p = prices[0];
 
@@ -435,17 +502,7 @@ function getPrice(item) {
     }
   }
 
-  // =========================
-  // 💎 JOYAS (FIX REAL)
-  // =========================
-  const jewels = {
-    bless: 0,
-    soul: 0,
-    chaos: 0,
-    life: 0,
-    creat: 0
-  };
-
+  const jewels = { bless:0, soul:0, chaos:0, life:0, creat:0 };
   let hasJewels = false;
 
   for (const p of prices) {
@@ -466,72 +523,12 @@ function getPrice(item) {
     return `${item.type} - ${txt}`;
   }
 
-  // fallback
   return `${item.type} - unknown`;
 }
 
 // ----------------
 function delay(ms) {
   return new Promise(r => setTimeout(r, ms));
-}
-
-// ----------------
-// SEARCH SELECTED
-// ----------------
-async function searchSelected(isAuto = false) {
-  const resultsDiv = document.getElementById("results");
-
-  if (!isAuto) {
-    resultsDiv.innerHTML = "Buscando...";
-  } else {
-    resultsDiv.innerHTML = "";
-  }
-
-  for (const s of sets) {
-    if (!s.enabled) continue;
-
-    await searchOne(s.name, isAuto);
-    await delay(2500);
-  }
-}
-
-// ----------------
-async function runAutoSearch() {
-  console.log("🔎 Auto searching...");
-
-  // 🔥 limpiar SIEMPRE
-  notifiedThisRun.clear();
-  document.getElementById("notifyList").innerHTML = "";
-
-  await searchSelected(true);
-}
-
-// ----------------
-// AUTO MODE
-// ----------------
-function toggleAutoMode() {
-  autoMode = !autoMode;
-
-  const btn = document.getElementById("autoBtn");
-
-  if (autoMode) {
-    console.log("🟢 AUTO MODE ACTIVADO");
-
-    btn.textContent = "Auto Mode ON";
-
-    runAutoSearch();
-
-    autoInterval = setInterval(() => {
-      runAutoSearch();
-    }, 5 * 60 * 1000);
-
-  } else {
-    console.log("🔴 AUTO MODE DESACTIVADO");
-
-    btn.textContent = "Auto Mode OFF";
-
-    clearInterval(autoInterval);
-  }
 }
 
 // ----------------
